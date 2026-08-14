@@ -1,20 +1,9 @@
 import { SlashCommandBuilder } from 'discord.js';
-import { getRoom, setCode, updateNeeded, clearRoom } from '../state.js';
+import { getRoom, setCode, updateNeeded } from '../state.js';
 import { scheduleRename } from '../renameQueue.js';
+import { parseRoomNumber, buildChannelName } from '../roomName.js';
 
 const MAX_NEEDED = 4;
-const ROOM_NAME_PATTERN = /^g(\d+)-/;
-
-function parseRoomNumber(channelName) {
-  const match = channelName.match(ROOM_NAME_PATTERN);
-  return match ? match[1] : null;
-}
-
-function buildChannelName(roomNumber, code, needed) {
-  if (!code) return `g${roomNumber}-xxxxx`;
-  if (needed <= 0) return `g${roomNumber}-${code}-f`;
-  return `g${roomNumber}-${code}`;
-}
 
 export const data = new SlashCommandBuilder()
   .setName('room')
@@ -26,8 +15,7 @@ export const data = new SlashCommandBuilder()
       .addStringOption((opt) => opt.setName('code').setDescription('The in-game room code').setRequired(true)),
   )
   .addSubcommand((sub) => sub.setName('join').setDescription('Mark that someone joined this room'))
-  .addSubcommand((sub) => sub.setName('leave').setDescription('Mark that someone left this room, opening a slot'))
-  .addSubcommand((sub) => sub.setName('boom').setDescription('Reset this room channel'));
+  .addSubcommand((sub) => sub.setName('leave').setDescription('Mark that someone left this room, opening a slot'));
 
 export async function execute(interaction) {
   const roomNumber = parseRoomNumber(interaction.channel.name);
@@ -74,13 +62,6 @@ export async function execute(interaction) {
       return buildChannelName(roomNumber, fresh.code, fresh.needed);
     });
     await interaction.reply(`A slot opened up — ${needed} more needed.`);
-    return;
-  }
-
-  if (sub === 'boom') {
-    clearRoom(interaction.channel.id);
-    scheduleRename(interaction.channel, () => `g${roomNumber}-xxxxx`);
-    await interaction.reply('Room reset.');
     return;
   }
 }
