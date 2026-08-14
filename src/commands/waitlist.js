@@ -1,8 +1,10 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { getRoom, setSong, addToQueue, removeFromQueue, popQueue } from '../state.js';
+import { getRoom, setSong, addToQueue, removeFromQueue, advancePinged } from '../state.js';
 
 function buildWaitlistEmbed(room) {
-  const lines = room.queue.length ? room.queue.map((id, i) => `${i + 1}. <@${id}>`).join('\n') : 'No users in queue';
+  const lines = room.queue.length
+    ? room.queue.map((id, i) => `${i + 1}. <@${id}>${id === room.pinged ? ' — **pinged**' : ''}`).join('\n')
+    : 'No users in queue';
   const embed = new EmbedBuilder().setTitle('Waitlist Queue').setColor(0x57f287);
   if (room.song) embed.addFields({ name: 'Song', value: room.song });
   embed.addFields({ name: 'Waitlist Users', value: lines });
@@ -46,7 +48,7 @@ export async function handleButton(interaction) {
   } else if (interaction.customId === 'waitlist_leave') {
     removeFromQueue(channelId, interaction.user.id);
   } else if (interaction.customId === 'waitlist_pingnext') {
-    const next = popQueue(channelId);
+    const next = advancePinged(channelId);
     if (next) await interaction.channel.send(`<@${next}> you're up! Head to the room.`);
   }
 
