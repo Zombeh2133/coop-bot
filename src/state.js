@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const dataDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'data');
 const dbPath = path.join(dataDir, 'rooms.json');
 
-const emptyRoom = () => ({ code: null, needed: null, song: null, queue: [] });
+const emptyRoom = () => ({ code: null, needed: null, song: null, queue: [], pinged: null });
 
 function readAll() {
   try {
@@ -67,13 +67,14 @@ export function removeFromQueue(channelId, userId) {
   return room.queue;
 }
 
-export function popQueue(channelId) {
+export function advancePinged(channelId) {
   const all = readAll();
   const room = { ...emptyRoom(), ...all[channelId] };
-  if (room.queue.length === 0) return null;
-  const [next, ...rest] = room.queue;
-  room.queue = rest;
+  if (room.pinged) {
+    room.queue = room.queue.filter((id) => id !== room.pinged);
+  }
+  room.pinged = room.queue[0] ?? null;
   all[channelId] = room;
   writeAll(all);
-  return next;
+  return room.pinged;
 }
