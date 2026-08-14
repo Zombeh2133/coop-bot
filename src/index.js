@@ -2,12 +2,14 @@ import 'dotenv/config';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import * as roomCommand from './commands/room.js';
 import * as waitlistCommand from './commands/waitlist.js';
+import * as boomCommand from './commands/boom.js';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.commands = new Collection([
   [roomCommand.data.name, roomCommand],
   [waitlistCommand.data.name, waitlistCommand],
+  [boomCommand.data.name, boomCommand],
 ]);
 
 client.on('interactionCreate', async (interaction) => {
