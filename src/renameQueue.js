@@ -1,26 +1,37 @@
-const RATE_LIMIT_MS = 5 * 60 * 1000;
+const WINDOW_MS = 10 * 60 * 1000;
+const MAX_RENAMES_PER_WINDOW = 2;
 
-const lastRenameAt = new Map();
+const renameHistory = new Map();
 const pendingTimers = new Map();
+
+function pruneHistory(history, now) {
+  return history.filter((ts) => now - ts < WINDOW_MS);
+}
 
 export function scheduleRename(channel, computeName) {
   const now = Date.now();
-  const last = lastRenameAt.get(channel.id) ?? 0;
-  const elapsed = now - last;
+  const history = pruneHistory(renameHistory.get(channel.id) ?? [], now);
 
-  if (elapsed >= RATE_LIMIT_MS) {
-    lastRenameAt.set(channel.id, now);
-    channel.setName(computeName()).catch(() => {});
+  if (history.length < MAX_RENAMES_PER_WINDOW) {
+    history.push(now);
+    renameHistory.set(channel.id, history);
+    channel.setName(computeName()).catch((err) => console.error(`Failed to rename channel ${channel.id}:`, err));
     return;
   }
 
   if (pendingTimers.has(channel.id)) return;
 
+  const oldest = Math.min(...history);
+  const wait = WINDOW_MS - (now - oldest) + 1000;
+
   const timer = setTimeout(() => {
     pendingTimers.delete(channel.id);
-    lastRenameAt.set(channel.id, Date.now());
-    channel.setName(computeName()).catch(() => {});
-  }, RATE_LIMIT_MS - elapsed);
+    const freshNow = Date.now();
+    const freshHistory = pruneHistory(renameHistory.get(channel.id) ?? [], freshNow);
+    freshHistory.push(freshNow);
+    renameHistory.set(channel.id, freshHistory);
+    channel.setName(computeName()).catch((err) => console.error(`Failed to rename channel ${channel.id}:`, err));
+  }, wait);
 
   pendingTimers.set(channel.id, timer);
 }
