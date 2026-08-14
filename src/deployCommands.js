@@ -2,8 +2,9 @@ import 'dotenv/config';
 import { REST, Routes } from 'discord.js';
 import * as roomCommand from './commands/room.js';
 import * as waitlistCommand from './commands/waitlist.js';
+import * as boomCommand from './commands/boom.js';
 
-const commands = [roomCommand.data.toJSON(), waitlistCommand.data.toJSON()];
+const commands = [roomCommand.data.toJSON(), waitlistCommand.data.toJSON(), boomCommand.data.toJSON()];
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
 const route = process.env.GUILD_ID
